@@ -13,7 +13,7 @@ double fRand(double fMin, double fMax)
 
 class Tree {
 public:
-    Tree(Tree *p = nullptr) : parent(p), value(0.0)
+    Tree(Tree *p = nullptr) : parent(p), value(-1.0)
                   {for (int i = 0; i < WIDTH; ++i) children[i] = nullptr;}
     ~Tree() {for (int i = 0; i < WIDTH; ++i) delete children[i];}
     Tree* children[WIDTH], *parent;
@@ -38,7 +38,7 @@ void describe (int level, Tree *node) {
     for (int i = 0; i < WIDTH; ++ i) {
         if (node->children[i]) {
             if (node->children[i]->value < 0.0)
-                std::cout << "empty" ;
+                std::cout << "empty " ;
             else
                 std::cout << node->children[i]->value << ' ';
         }
@@ -79,27 +79,40 @@ void inspect(Tree *tree) {
     }
 }
 
-double minimax(Tree *node, bool white = true) {
-    bool leaf = true;
-    double result;
+bool better(bool white, double value, double storage) {
+    if (storage < 0.0)
+        return true;
+    return (white && value > storage) || (!white && value < storage);
+}
+
+bool out_of_limits(bool white, double value, double alpha, double beta) {
+    return (white && value > beta) || (!white && value < alpha);
+}
+
+double minimax(Tree *node, double alpha = 0.0, double beta = 1.0, bool white = true) {
+    double result = -1.0;
     for (int i = 0; i < WIDTH; ++i) {
         if (node->children[i]) {
-            double value = minimax(node->children[i], !white);
-            if (leaf) {
-                leaf = false;
-                result = value;
+            double value = minimax(node->children[i], alpha, beta, !white);
+            if (out_of_limits(white, value, alpha, beta)) {
+                node->value = -1.0;
+                return value;
             }
-            else {
-                if ((white && value > result) || (!white && value < result))
-                    result = value;
+            if (better(white, value, result)) {
+                result = value;
+                if (white)
+                    alpha = value;
+                else
+                    beta = value;
             }
         }
     }
-    if (!leaf) {
+    if (result >= 0.0) {    // промежуточный узел
         node->value = result;
         return result;
     }
-    return node->value;
+    else                    // лист
+        return node->value;
 }
 
 int main() {
